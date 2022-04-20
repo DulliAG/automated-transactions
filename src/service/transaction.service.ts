@@ -4,7 +4,7 @@ import axios from 'axios';
 
 export class TransactionService {
   private COOKIES = {
-    XSRF: `laravel_session=${process.env.XSRF!}`,
+    XSRF: `XSRF-TOKEN=${process.env.XSRF!}`,
     LARAVEL: `laravel_session=${process.env.LARAVEL!}`,
   };
 
