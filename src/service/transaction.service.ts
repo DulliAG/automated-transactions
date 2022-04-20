@@ -57,6 +57,7 @@ export class TransactionService {
             if (RESULT.includes('Zielkonto existiert nicht'))
               throw new Error('Zielkonto existiert nicht!');
 
+            console.log(RESULT);
             throw new Error('Ein unbekannter Fehler ist aufgetreten!');
           }
 
