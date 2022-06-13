@@ -90,5 +90,5 @@ const processTransactions = new CronJob('0 1 * * *', async () => {
   }
 });
 
-processTransactions.fireOnTick();
+// processTransactions.fireOnTick();
 processTransactions.start();
