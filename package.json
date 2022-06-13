@@ -2,7 +2,7 @@
   "name": "automated-transactions",
   "version": "1.0.0",
   "description": "",
-  "main": "calc.js",
+  "main": "index.js",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",

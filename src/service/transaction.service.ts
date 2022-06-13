@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import axios from 'axios';
+import { TransactionExecutionType } from '../interface/planned-transaction.interface';
 
 export class TransactionService {
   private COOKIES = {
@@ -17,6 +18,29 @@ export class TransactionService {
 
   private TOKEN = process.env.TRANSFER_TOKEN!;
 
+  static shouldExecuteTransaction(
+    type: TransactionExecutionType,
+    startDate: Date,
+    now: Date = new Date()
+  ) {
+    const DAILY_EXECUTION = type === 'DAILY';
+
+    // Check if 7 days since the start of the execution have been passed
+    // If this is the case, the next transaction should been sent
+    const WEEKLY_EXECUTION = type === 'WEEKLY' && (now.getDate() - startDate.getDate()) % 7 === 0;
+
+    // Check if a month has passed since the last transaction
+    const MONTHLY_EXECUTION =
+      type === 'MONTHLY' &&
+      startDate.getMonth() === now.getMonth() + 1 &&
+      startDate.getDate() === startDate.getDate();
+
+    // If we're processing an planned transaction the start_date and end_date are equal and represent the execution date
+    const PLANNED_EXECUTION = type === 'PLANNED' && startDate.getDate() === now.getDate();
+
+    return DAILY_EXECUTION || WEEKLY_EXECUTION || MONTHLY_EXECUTION || PLANNED_EXECUTION;
+  }
+
   getTransactions = (iban: string, options = this.OPTIONS) => {
     return new Promise((res, rej) => {
       axios
@@ -26,7 +50,7 @@ export class TransactionService {
     });
   };
 
-  transferMoney = (
+  transfer = (
     iban: string,
     { target, amount, info }: { target: string; amount: number; info: string },
     token = this.TOKEN,

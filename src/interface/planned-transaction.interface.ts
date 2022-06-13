@@ -1,12 +1,16 @@
-export type TransactionType = 'PLANNED' | 'DAILY';
-
-export interface IPlannedTransfer {
+export interface ITransaction {
   id: number;
-  type: TransactionType;
-  account: string;
-  target: string;
-  amount: number;
-  info: null | string;
-  execute_at: Date;
-  created_at: Date;
+  bkr_execution: TransactionExecution;
+  sender: string;
+  receiver: string;
+  balance: number;
+  note: string;
+}
+export type TransactionExecutionType = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'PLANNED';
+
+export interface TransactionExecution {
+  id: number;
+  type: TransactionExecutionType;
+  start_date: string;
+  end_date: string;
 }
