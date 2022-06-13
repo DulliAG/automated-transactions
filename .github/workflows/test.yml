@@ -1,0 +1,19 @@
+name: Test
+on: [pull_request]
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v3
+
+      - name: Use Node.js 16
+        uses: actions/setup-node@v2-beta
+        with:
+          node-version: '16.13'
+
+      - name: 📦 Install dependencies
+        run: npm install
+
+      - name: 🚀 Publish preview
+        run: npm run test

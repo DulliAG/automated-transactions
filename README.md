@@ -1,3 +1,9 @@
+## Allgemeines
+
+> Beim erstellen einer monatlichen Transaktion ist zu beachten dass, nicht geprüft wird ob es sich um den letzten Tag des Monats handelt.
+> D.h. sollte eine Transaktion am 29 Februar starten würde diese am 29. April ausgeführt werden und nicht am 30. April
+> Daher ist zu empfehlen eine solche Transaktion auf den jewails ersten Tag des Monats auszuführen
+
 ```
 PRODUCTION=true
 APPLICATION=<ENTER>

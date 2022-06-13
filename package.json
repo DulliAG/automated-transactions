@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "test": "jest --passWithNoTests",
+    "build": "npm run test && tsc",
     "start": "node dist/index.js",
     "start-ts": "ts-node src/index.ts"
   },
@@ -13,6 +14,9 @@
   "license": "ISC",
   "devDependencies": {
     "@types/cron": "^1.7.3",
+    "@types/jest": "^28.1.1",
+    "jest": "^28.1.1",
+    "ts-jest": "^28.0.4",
     "typescript": "^4.6.3"
   },
   "dependencies": {
