@@ -1,0 +1,52 @@
+name: Publish Docker image
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+jobs:
+  build_image:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker image
+        run: |
+          docker build . -t ghcr.io/dulliag/automated-transactions:${{ github.ref_name }}
+          mkdir -p artifacts
+          docker save ghcr.io/dulliag/automated-transactions:${{ github.ref_name }} > artifacts/docker-image.tar
+
+      - name: Save Docker image
+        uses: actions/upload-artifact@v2
+        with:
+          name: docker-artifact
+          path: artifacts
+          retention-days: 1
+
+  deploy_image:
+    needs: build_image
+    name: Push Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Retrieve saved Docker image
+        uses: actions/download-artifact@v2
+        with:
+          name: docker-artifact
+          path: artifacts
+
+      - name: Load Docker image
+        run: |
+          cd artifacts
+          docker load < docker-image.tar
+
+      - name: Login
+        run: |
+          echo ${{ secrets.PAT }} | docker login ghcr.io -u ${{ secrets.DOCKER_USER }} --password-stdin
+
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/dulliag/automated-transactions:${{ github.ref_name }}
