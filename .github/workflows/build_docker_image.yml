@@ -7,7 +7,19 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - run: npm install
+      - run: npm run test
+      
   build_image:
+    needs: test
     name: Build Docker image
     runs-on: ubuntu-latest
     environment: production
