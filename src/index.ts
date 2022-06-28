@@ -62,7 +62,7 @@ const processTransactions = new CronJob('0 1 * * *', async () => {
           let options = {
             target: transaction.receiver,
             amount: transaction.balance,
-            info: `${transaction.note} - AUTOMATED RLRPG TRANSACTIONS`,
+            info: transaction.note,
           };
           new TransactionService()
             .transfer(transaction.sender, options)
