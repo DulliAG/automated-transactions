@@ -17,7 +17,7 @@ jobs:
           node-version: 16
       - run: npm install
       - run: npm run test
-      
+
   build_image:
     needs: test
     name: Build Docker image
@@ -25,11 +25,31 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v3
+      - name: Create `.env`-file
+        uses: SpicyPizza/create-envfile@v1.3
+        with:
+          envkey_PRODUCTION: ${{ secrets.PRODUCTION }}
+          envkey_APPLICATION: ${{ secrets.APPLICATION }}
+          envkey_LARAVEL: ${{ secrets.LARAVEL }}
+          envkey_XSRF: ${{ secrets.XSRF }}
+          envkey_TRANSFER_TOKEN: ${{ secrets.TRANSFER_TOKEN }}
+          envkey_DB_HOST: ${{ secrets.DB_HOST }}
+          envkey_DB_USER: ${{ secrets.DB_USER }}
+          envkey_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          envkey_DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          envkey_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          envkey_SUPBASE_URL: ${{ secrets.SUPABASE_URL }}
+
       - name: Build Docker image
         run: |
-          docker build . -t ghcr.io/dulliag/automated-transactions:${{ github.ref_name }}
+          rm .npmrc 
+          echo $'@dulliag:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken='$NPM_TOKEN >> .npmrc
+          docker build --secret id=npm,src=.npmrc . -t ghcr.io/dulliag/automated-transactions:${{ github.ref_name }}
           mkdir -p artifacts
           docker save ghcr.io/dulliag/automated-transactions:${{ github.ref_name }} > artifacts/docker-image.tar
+        env:
+          DOCKER_BUILDKIT: 1
+          NPM_TOKEN: ${{ secrets.PAT }}
 
       - name: Save Docker image
         uses: actions/upload-artifact@v2
@@ -38,12 +58,11 @@ jobs:
           path: artifacts
           retention-days: 1
 
-  deploy_image:
+  push_image:
     needs: build_image
     name: Push Docker image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
       - name: Retrieve saved Docker image
         uses: actions/download-artifact@v2
         with:
@@ -62,3 +81,30 @@ jobs:
       - name: Push Docker image
         run: |
           docker push ghcr.io/dulliag/automated-transactions:${{ github.ref_name }}
+
+      - name: Delete artifact
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: docker-artifact
+
+  deploy_image:
+    needs: push_image
+    name: Deploy Docker image to server
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Connect and deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
+          script: |
+            echo ${{ secrets.PAT }} | docker login ghcr.io -u ${{ secrets.DOCKER_USER }} --password-stdin
+            docker container stop automated-transactions
+            docker container rm automated-transactions
+            docker image rm ghcr.io/dulliag/automated-transactions:latest
+            docker pull ghcr.io/dulliag/automated-transactions:${{ github.ref_name }}
+            docker tag ghcr.io/dulliag/automated-transactions:${{ github.ref_name }} ghcr.io/dulliag/automated-transactions:latest
+            docker run -itd --restart on-failure:3 --name=automated-transactions ghcr.io/dulliag/automated-transactions:latest
