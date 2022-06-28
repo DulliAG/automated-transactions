@@ -44,7 +44,7 @@ jobs:
           envkey_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           envkey_DB_DATABASE: ${{ secrets.DB_DATABASE }}
           envkey_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          envkey_SUPBASE_URL: ${{ secrets.SUPABASE_URL }}
+          envkey_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
 
       - name: Build Docker image
         run: |
