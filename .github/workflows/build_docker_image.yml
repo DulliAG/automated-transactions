@@ -6,6 +6,9 @@ on:
     #   - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
 
+env:
+  NPM_TOKEN: ${{ secrets.PAT }}
+
 jobs:
   test:
     name: Run tests
@@ -15,8 +18,11 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16
-      - run: npm install
-      - run: npm run test
+      - run: |
+          rm .npmrc 
+          echo $'@dulliag:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken='$NPM_TOKEN >> .npmrc
+          npm install
+          npm run test
 
   build_image:
     needs: test
@@ -49,7 +55,6 @@ jobs:
           docker save ghcr.io/dulliag/automated-transactions:${{ github.ref_name }} > artifacts/docker-image.tar
         env:
           DOCKER_BUILDKIT: 1
-          NPM_TOKEN: ${{ secrets.PAT }}
 
       - name: Save Docker image
         uses: actions/upload-artifact@v2
