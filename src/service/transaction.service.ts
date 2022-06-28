@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import axios from 'axios';
 import { TransactionExecutionType } from '../interface/planned-transaction.interface';
+import { differenceInDays } from 'date-fns';
 
 export class TransactionService {
   private COOKIES = {
@@ -27,7 +28,7 @@ export class TransactionService {
 
     // Check if 7 days since the start of the execution have been passed
     // If this is the case, the next transaction should been sent
-    const WEEKLY_EXECUTION = type === 'WEEKLY' && (now.getDate() - startDate.getDate()) % 7 === 0;
+    const WEEKLY_EXECUTION = type === 'WEEKLY' && differenceInDays(startDate, now) % 7 === 0;
 
     // Check if a month has passed since the last transaction
     const MONTHLY_EXECUTION =
