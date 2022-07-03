@@ -6,6 +6,7 @@ import { createLog } from './service/log.service';
 import { supabase } from './supabase';
 import { ITransaction } from './interface/planned-transaction.interface';
 import { TransactionService } from './service/transaction.service';
+import { PRODUCTION } from './constants';
 
 const TRANSACTION_TIMEOUT = 500;
 
@@ -64,11 +65,18 @@ const processTransactions = new CronJob('0 1 * * *', async () => {
             amount: transaction.balance,
             info: transaction.note,
           };
+          if (!PRODUCTION) {
+            createLog(
+              LogVariant.LOG,
+              'Transfer money',
+              JSON.stringify({ id: transaction.id, details: options, message: 'Money transfered' })
+            );
+            return;
+          }
           new TransactionService()
             .transfer(transaction.sender, options)
             .then((result) => {
               console.log(result);
-
               createLog(
                 LogVariant.LOG,
                 'Transfer money',
@@ -90,5 +98,5 @@ const processTransactions = new CronJob('0 1 * * *', async () => {
   }
 });
 
-// processTransactions.fireOnTick();
+if (!PRODUCTION) processTransactions.fireOnTick();
 processTransactions.start();

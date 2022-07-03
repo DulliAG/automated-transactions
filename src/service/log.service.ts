@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
+import { PRODUCTION } from '../constants';
 import { Client, Credentials, Database, LogVariant } from '@dulliag/logger.js';
 
 const credentials: Credentials = {
@@ -12,5 +13,5 @@ const credentials: Credentials = {
 const LOGGER = new Client(Database.PG, credentials, process.env.APPLICATION);
 
 export const createLog = (variant: LogVariant, category: string, message: string) => {
-  return process.env.PRODUCTION! == 'true' ? LOGGER.log(variant, category, message) : null;
+  return PRODUCTION ? LOGGER.log(variant, category, message) : null;
 };
