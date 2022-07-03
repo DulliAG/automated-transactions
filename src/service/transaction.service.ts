@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import axios from 'axios';
-import { TransactionExecutionType } from '../interface/planned-transaction.interface';
-import { differenceInDays } from 'date-fns';
+import { isSameDay, differenceInDays, addHours } from 'date-fns';
+import { TransactionExecution } from '../interface/planned-transaction.interface';
 
 export class TransactionService {
   private COOKIES = {
@@ -20,43 +20,79 @@ export class TransactionService {
   private TOKEN = process.env.TRANSFER_TOKEN!;
 
   static shouldExecuteTransaction(
-    type: TransactionExecutionType,
-    startDate: Date,
-    now: Date = new Date()
+    { type, start_date, end_date }: TransactionExecution,
+    now: Date = addHours(new Date(), 2)
   ) {
-    const DAILY_EXECUTION = type === 'DAILY';
+    const startDate = new Date(start_date),
+      endDate = new Date(end_date);
 
-    // Check if 7 days since the start of the execution have been passed
-    // If this is the case, the next transaction should been sent
-    const WEEKLY_EXECUTION = type === 'WEEKLY' && differenceInDays(startDate, now) % 7 === 0;
+    const isInDateRange = now >= startDate && now <= endDate;
 
-    // Check if a month has passed since the last transaction
-    const MONTHLY_EXECUTION =
-      type === 'MONTHLY' &&
-      startDate.getMonth() === now.getMonth() + 1 &&
-      startDate.getDate() === startDate.getDate();
+    const isStartDay = isSameDay(now, startDate);
 
-    // If we're processing an planned transaction the start_date and end_date are equal and represent the execution date
-    const PLANNED_EXECUTION = type === 'PLANNED' && startDate.getDate() === now.getDate();
+    switch (type) {
+      case 'DAILY':
+        return isInDateRange;
 
-    return DAILY_EXECUTION || WEEKLY_EXECUTION || MONTHLY_EXECUTION || PLANNED_EXECUTION;
+      case 'WEEKLY':
+        return isInDateRange && (isStartDay || differenceInDays(now, startDate) % 7 === 0);
+
+      case 'MONTHLY':
+        // Check if the start-date is the last day of the month
+        // If this is the case we're gonna execute the transaction on the last day of the following months
+        // If this is not the case the transactions is gonna get executed next month on the same date
+        const getLastDateOfMonth = (year: number, month: number) =>
+          new Date(year, month, 0).getDate();
+
+        /**
+         * Prüfe ob
+         * - prüfe ob start-datum letzter tag des monats ist
+         *   (wenn dies der fall ist soll die zahlung immer am letzten tag der folgemonate ausgeführt werden)
+         */
+
+        const lastDayOfStartMonth = getLastDateOfMonth(
+          Number(start_date.split('-')[0]),
+          Number(start_date.split('-')[1])
+        );
+        const startDateIsLastDateOfMonth = lastDayOfStartMonth === Number(start_date.split('-')[2]);
+        const todayIsLastDateOfMonth =
+          getLastDateOfMonth(now.getFullYear(), now.getDate()) === now.getDate();
+
+        // e.g. 2022-02-29 would be false because the last day would be 2022-02-28
+        const startMonthContainsDate =
+          lastDayOfStartMonth > 0 && Number(start_date.split('-')[2]) <= lastDayOfStartMonth;
+        const monthHasPassed = startDate.getDate() === now.getDate();
+
+        return (
+          isInDateRange &&
+          startMonthContainsDate &&
+          (isStartDay ||
+            (startDateIsLastDateOfMonth && todayIsLastDateOfMonth) ||
+            (!isStartDay && monthHasPassed))
+        );
+
+      case 'PLANNED':
+        // If we're checking an PLANNED-execution the start- and end-date are the same.
+        // If this is not the case were checking an defective transaction
+        return isInDateRange && isStartDay && isSameDay(now, endDate);
+    }
   }
 
-  getTransactions = (iban: string, options = this.OPTIONS) => {
+  getTransactions(iban: string, options = this.OPTIONS) {
     return new Promise((res, rej) => {
       axios
         .post(`https://info.realliferpg.de/banking/${iban}/data`, {}, options)
         .then((response) => res(response.data))
         .catch((err) => rej(err));
     });
-  };
+  }
 
-  transfer = (
+  transfer(
     iban: string,
     { target, amount, info }: { target: string; amount: number; info: string },
     token = this.TOKEN,
     options = this.OPTIONS
-  ): Promise<string> => {
+  ): Promise<string> {
     return new Promise((res, rej) => {
       axios
         .post(
@@ -90,5 +126,5 @@ export class TransactionService {
         })
         .catch((err) => rej(err));
     });
-  };
+  }
 }

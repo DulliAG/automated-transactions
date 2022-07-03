@@ -1,49 +1,185 @@
 import { TransactionService } from '../service/transaction.service';
 
 describe('Check if the transaction should execute', () => {
-  test('Daily, should execute', () => {
-    expect(TransactionService.shouldExecuteTransaction('DAILY', new Date())).toBe(true);
+  test('Daily, but start-date is in the future', () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'DAILY',
+          start_date: '2022-07-05',
+          end_date: '2022-07-14',
+        },
+        new Date('2022-07-03')
+      )
+    ).toBe(false);
   });
 
-  test('Weekly, should not execute', () => {
-    let start = new Date();
-    start.setDate(start.getDate() + 6);
-    expect(TransactionService.shouldExecuteTransaction('WEEKLY', start)).toBe(false);
+  test('Daily, should execute during period', () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'DAILY',
+          start_date: '2022-07-03',
+          end_date: '2022-07-14',
+        },
+        new Date('2022-07-03')
+      )
+    ).toBe(true);
   });
 
-  test('Weekly, should execute', () => {
-    let start = new Date();
-    start.setDate(start.getDate() + 7);
-    expect(TransactionService.shouldExecuteTransaction('WEEKLY', start)).toBe(true);
+  test("Daily, should'nt execute after period", () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'DAILY',
+          start_date: '2022-07-01',
+          end_date: '2022-07-02',
+        },
+        new Date('2022-07-03')
+      )
+    ).toBe(false);
   });
 
-  test('Monthly, should not execute', () => {
-    let start = new Date();
-    start.setDate(start.getDate() - 19);
-    expect(TransactionService.shouldExecuteTransaction('MONTHLY', start)).toBe(false);
+  test('Weekly, should execute on start-date', () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'WEEKLY',
+          start_date: '2022-07-03',
+          end_date: '2022-07-30',
+        },
+        new Date('2022-07-03')
+      )
+    ).toBe(true);
   });
 
-  test('Monthly, should execute', () => {
-    let start = new Date('2022-07-13');
-    let today = new Date('2022-06-13');
-    expect(TransactionService.shouldExecuteTransaction('MONTHLY', start, today)).toBe(true);
+  test('Weekly, should execute one week after start', () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'WEEKLY',
+          start_date: '2022-07-03',
+          end_date: '2022-07-30',
+        },
+        new Date('2022-07-10')
+      )
+    ).toBe(true);
   });
 
-  test('Monthly(29.Feb on 30.April), should not execute', () => {
-    let start = new Date('2022-02-29');
-    let today = new Date('2022-03-30');
-    expect(TransactionService.shouldExecuteTransaction('MONTHLY', start, today)).toBe(false);
+  test("Weekly, should'nt execute", () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'WEEKLY',
+          start_date: '2022-07-03',
+          end_date: '2022-07-30',
+        },
+        new Date('2022-07-11')
+      )
+    ).toBe(false);
   });
 
-  test('Planned, should not execute', () => {
-    let execution = new Date('2022-06-14');
-    let today = new Date('2022-06-13');
-    expect(TransactionService.shouldExecuteTransaction('PLANNED', execution, today)).toBe(false);
+  test('Month, run on start-date', () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'MONTHLY',
+          start_date: '2022-02-28',
+          end_date: '2022-07-30',
+        },
+        new Date('2022-02-28')
+      )
+    ).toBe(true);
   });
 
-  test('Planned, should execute', () => {
-    let execution = new Date('2022-06-13');
-    let today = new Date('2022-06-13');
-    expect(TransactionService.shouldExecuteTransaction('PLANNED', execution, today)).toBe(true);
+  test("Month, doesn't contains date", () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'MONTHLY',
+          start_date: '2022-02-29',
+          end_date: '2022-07-30',
+        },
+        new Date('2022-03-31')
+      )
+    ).toBe(false);
+  });
+
+  test('Month, run 2 months after start', () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'MONTHLY',
+          start_date: '2022-02-14',
+          end_date: '2022-05-30',
+        },
+        new Date('2022-03-14')
+      )
+    ).toBe(true);
+  });
+
+  test('Month, run 3 months after start on last day', () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'MONTHLY',
+          start_date: '2022-02-28',
+          end_date: '2022-06-30',
+        },
+        new Date('2022-05-31')
+      )
+    ).toBe(true);
+  });
+
+  test('Planned, should execute on start and end-date', () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'PLANNED',
+          start_date: '2022-07-03',
+          end_date: '2022-07-03',
+        },
+        new Date('2022-07-03')
+      )
+    ).toBe(true);
+  });
+
+  test("Planned, should'nt execute after start and end-date", () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'PLANNED',
+          start_date: '2022-07-03',
+          end_date: '2022-07-03',
+        },
+        new Date('2022-07-04')
+      )
+    ).toBe(false);
+  });
+
+  test("Planned, should'nt execute on different start and end-date", () => {
+    expect(
+      TransactionService.shouldExecuteTransaction(
+        {
+          id: 1,
+          type: 'PLANNED',
+          start_date: '2022-07-03',
+          end_date: '2022-07-04',
+        },
+        new Date('2022-07-04')
+      )
+    ).toBe(false);
   });
 });

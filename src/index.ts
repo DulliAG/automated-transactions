@@ -52,12 +52,9 @@ const processTransactions = new CronJob('0 1 * * *', async () => {
 
         return transaction;
       })
-      .filter((transaction) => {
-        const { type, start_date } = transaction.bkr_execution;
-        if (TransactionService.shouldExecuteTransaction(type, new Date(start_date))) {
-          return transaction;
-        }
-      })
+      .filter((transaction) =>
+        TransactionService.shouldExecuteTransaction(transaction.bkr_execution)
+      )
       .forEach((transaction, index) => {
         setTimeout(() => {
           let options = {
