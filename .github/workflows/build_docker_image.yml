@@ -50,9 +50,9 @@ jobs:
         run: |
           rm .npmrc 
           echo $'@dulliag:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken='$NPM_TOKEN >> .npmrc
-          docker build --secret id=npm,src=.npmrc . -t ghcr.io/dulliag/automated-transactions:${{ github.ref_name }}
+          docker build --secret id=npm,src=.npmrc . -t ghcr.io/tklein1801/automated-transactions:${{ github.ref_name }}
           mkdir -p artifacts
-          docker save ghcr.io/dulliag/automated-transactions:${{ github.ref_name }} > artifacts/docker-image.tar
+          docker save ghcr.io/tklein1801/automated-transactions:${{ github.ref_name }} > artifacts/docker-image.tar
         env:
           DOCKER_BUILDKIT: 1
 
@@ -85,7 +85,7 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push ghcr.io/dulliag/automated-transactions:${{ github.ref_name }}
+          docker push ghcr.io/tklein1801/automated-transactions:${{ github.ref_name }}
 
       - name: Delete artifact
         uses: geekyeggo/delete-artifact@v1
@@ -109,7 +109,7 @@ jobs:
             echo ${{ secrets.PAT }} | docker login ghcr.io -u ${{ secrets.DOCKER_USER }} --password-stdin
             docker container stop automated-transactions
             docker container rm automated-transactions
-            docker image rm ghcr.io/dulliag/automated-transactions:latest
-            docker pull ghcr.io/dulliag/automated-transactions:${{ github.ref_name }}
-            docker tag ghcr.io/dulliag/automated-transactions:${{ github.ref_name }} ghcr.io/dulliag/automated-transactions:latest
-            docker run -itd --restart on-failure:3 --name=automated-transactions ghcr.io/dulliag/automated-transactions:latest
+            docker image rm ghcr.io/tklein1801/automated-transactions:latest
+            docker pull ghcr.io/tklein1801/automated-transactions:${{ github.ref_name }}
+            docker tag ghcr.io/tklein1801/automated-transactions:${{ github.ref_name }} ghcr.io/tklein1801/automated-transactions:latest
+            docker run -itd --restart on-failure:3 --name=automated-transactions ghcr.io/tklein1801/automated-transactions:latest

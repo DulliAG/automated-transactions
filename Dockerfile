@@ -1,6 +1,6 @@
 FROM node:alpine
 
-LABEL org.opencontainers.image.source https://github.com/DulliAG/automated-transactions
+LABEL org.opencontainers.image.source https://github.com/tklein1801/automated-transactions
 
 WORKDIR /usr/src/automated-transactions/
 
