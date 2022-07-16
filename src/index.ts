@@ -1,8 +1,7 @@
-import { LogVariant } from '@dulliag/logger.js';
 import { CronJob } from 'cron';
 import { format } from 'date-fns';
 
-import { createLog } from './service/log.service';
+import { client } from './service/log.service';
 import { supabase } from './supabase';
 import { ITransaction } from './interface/planned-transaction.interface';
 import { TransactionService } from './service/transaction.service';
@@ -12,7 +11,7 @@ const TRANSACTION_TIMEOUT = 500;
 
 const processTransactions = new CronJob('0 1 * * *', async () => {
   try {
-    createLog(LogVariant.LOG, 'Retrieve transactions', 'Rufe Daten aus der Datenbank ab');
+    client.log('LOG', 'Retrieve transactions', 'Rufe Daten aus der Datenbank ab');
     const { data, error } = await supabase
       .from<ITransaction>('bkr_transaction')
       .select(
@@ -43,7 +42,7 @@ const processTransactions = new CronJob('0 1 * * *', async () => {
       );
     if (error) throw error;
 
-    createLog(LogVariant.LOG, 'Process transactions', 'Auswerten der gültigen Transaktionen');
+    client.log('LOG', 'Process transactions', 'Auswerten der gültigen Transaktionen');
     // Filter transactions which are not daily, weekly, monthly or planned for today
     data
       .filter((transaction) => {
@@ -63,8 +62,8 @@ const processTransactions = new CronJob('0 1 * * *', async () => {
             info: transaction.note,
           };
           if (!PRODUCTION) {
-            createLog(
-              LogVariant.LOG,
+            client.log(
+              'LOG',
               'Transfer money',
               JSON.stringify({ id: transaction.id, details: options, message: 'Money transfered' })
             );
@@ -74,24 +73,20 @@ const processTransactions = new CronJob('0 1 * * *', async () => {
             .transfer(transaction.sender, options)
             .then((result) => {
               console.log(result);
-              createLog(
-                LogVariant.LOG,
+              client.log(
+                'LOG',
                 'Transfer money',
                 JSON.stringify({ id: transaction.id, details: options, message: result })
               );
             })
-            .catch((error) => createLog(LogVariant.ERROR, 'Transfer money', error));
+            .catch((error) => client.log('ERROR', 'Transfer money', error));
         }, index * TRANSACTION_TIMEOUT);
       });
   } catch (error) {
     // @ts-expect-error
-    createLog(LogVariant.ERROR, 'Uncategorized', error);
+    client.log('ERROR', 'Uncategorized', error);
   } finally {
-    createLog(
-      LogVariant.INFORMATION,
-      'Processing transactions',
-      'Verarbeiten der Transaktionen beendet'
-    );
+    client.log('INFORMATION', 'Processing transactions', 'Verarbeiten der Transaktionen beendet');
   }
 });
 
