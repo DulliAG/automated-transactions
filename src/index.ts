@@ -1,19 +1,22 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import { CronJob } from 'cron';
 import { format } from 'date-fns';
 
 import { client } from './service/log.service';
 import { supabase } from './supabase';
-import { ITransaction } from './interface/planned-transaction.interface';
+import { Transaction } from './interface/transaction.interface';
 import { TransactionService } from './service/transaction.service';
 import { PRODUCTION } from './constants';
 
 const TRANSACTION_TIMEOUT = 500;
 
+client.log('LOG', 'Setup', `Starting ${process.env.APPLICATION}...`);
 const processTransactions = new CronJob('0 1 * * *', async () => {
   try {
     client.log('LOG', 'Retrieve transactions', 'Rufe Daten aus der Datenbank ab');
     const { data, error } = await supabase
-      .from<ITransaction>('bkr_transaction')
+      .from<Transaction>('bkr_transaction')
       .select(
         `
           id,
@@ -42,51 +45,47 @@ const processTransactions = new CronJob('0 1 * * *', async () => {
       );
     if (error) throw error;
 
-    client.log('LOG', 'Process transactions', 'Auswerten der gültigen Transaktionen');
-    // Filter transactions which are not daily, weekly, monthly or planned for today
-    data
-      .filter((transaction) => {
-        if (transaction.sender === transaction.receiver)
-          throw 'Der Sender darf nicht der Empfänger sein';
-
-        return transaction;
-      })
-      .filter((transaction) =>
-        TransactionService.shouldExecuteTransaction(transaction.bkr_execution)
+    const transactionsForExecution = data.filter((transaction) =>
+      TransactionService.validate(
+        transaction.sender,
+        { target: transaction.receiver, amount: transaction.balance, info: transaction.note },
+        transaction.bkr_execution
       )
-      .forEach((transaction, index) => {
-        setTimeout(() => {
-          let options = {
-            target: transaction.receiver,
-            amount: transaction.balance,
-            info: transaction.note,
-          };
-          if (!PRODUCTION) {
+    );
+    await client.log(
+      'LOG',
+      'Process transactions',
+      JSON.stringify({
+        message: 'Auswerten der gültigen Transaktionen',
+        transactions: transactionsForExecution,
+      })
+    );
+
+    // Execute transactions
+    const transactionService = new TransactionService();
+    transactionsForExecution.forEach((transaction, index) => {
+      setTimeout(async () => {
+        let options = {
+          target: transaction.receiver,
+          amount: transaction.balance,
+          info: transaction.note,
+        };
+        if (!PRODUCTION) options.amount = 1; // Because we don't wanna spent or loose all our money we're only gonna transfer 1 $ per transaction
+        return transactionService
+          .transfer(transaction.sender, options)
+          .then((result) => {
             client.log(
               'LOG',
               'Transfer money',
-              JSON.stringify({ id: transaction.id, details: options, message: 'Money transfered' })
+              JSON.stringify({ id: transaction.id, details: options, message: result })
             );
-            return;
-          }
-          new TransactionService()
-            .transfer(transaction.sender, options)
-            .then((result) => {
-              console.log(result);
-              client.log(
-                'LOG',
-                'Transfer money',
-                JSON.stringify({ id: transaction.id, details: options, message: result })
-              );
-            })
-            .catch((error) => client.log('ERROR', 'Transfer money', error));
-        }, index * TRANSACTION_TIMEOUT);
-      });
+          })
+          .catch((err) => client.log('ERROR', 'Transfer money', err));
+      }, index * TRANSACTION_TIMEOUT);
+    });
   } catch (error) {
     // @ts-expect-error
     client.log('ERROR', 'Uncategorized', error);
-  } finally {
-    client.log('INFORMATION', 'Processing transactions', 'Verarbeiten der Transaktionen beendet');
   }
 });
 

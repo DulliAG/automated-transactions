@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import axios from 'axios';
 import { isSameDay, differenceInDays, addHours } from 'date-fns';
-import { TransactionExecution } from '../interface/planned-transaction.interface';
+import { TransactionDetails, TransactionExecution } from '../interface/transaction.interface';
 
 export class TransactionService {
   private COOKIES = {
@@ -11,7 +11,6 @@ export class TransactionService {
   };
 
   private OPTIONS = {
-    // method: 'POST',
     headers: {
       cookie: `${this.COOKIES.XSRF} ${this.COOKIES.LARAVEL}`,
     },
@@ -19,7 +18,11 @@ export class TransactionService {
 
   private TOKEN = process.env.TRANSFER_TOKEN!;
 
-  static shouldExecuteTransaction(
+  static validateIban(iban: string) {
+    return new RegExp('NH[0-9]{6}').test(iban) && iban.length === 8;
+  }
+
+  static validateExecutionDate(
     { type, start_date, end_date }: TransactionExecution,
     now: Date = addHours(new Date(), 2)
   ) {
@@ -78,6 +81,44 @@ export class TransactionService {
     }
   }
 
+  static validate(
+    sender: string,
+    { target, amount, info }: TransactionDetails,
+    exeuction: TransactionExecution
+  ) {
+    if (amount < 0) {
+      throw new Error(
+        JSON.stringify({
+          message: `Transfer amount has to be 1 or greater`,
+          error: '*/invalid-amount',
+        })
+      );
+    }
+
+    if (sender === target) {
+      throw new Error(
+        JSON.stringify({
+          message: `The reciver is identical with the sender`,
+          error: '*/equal-receiver',
+        })
+      );
+    }
+
+    if (!this.validateIban(sender)) {
+      throw new Error(
+        JSON.stringify({ message: `Provided 'sender' IBAN is invalid`, error: '*/invalid-iban' })
+      );
+    }
+
+    if (!this.validateIban(target)) {
+      throw new Error(
+        JSON.stringify({ message: `Provided 'target' IBAN is invalid`, error: '*/invalid-iban' })
+      );
+    }
+
+    return this.validateExecutionDate(exeuction);
+  }
+
   getTransactions(iban: string, options = this.OPTIONS) {
     return new Promise((res, rej) => {
       axios
@@ -89,7 +130,7 @@ export class TransactionService {
 
   transfer(
     iban: string,
-    { target, amount, info }: { target: string; amount: number; info: string },
+    { target, amount, info }: TransactionDetails,
     token = this.TOKEN,
     options = this.OPTIONS
   ): Promise<string> {
@@ -107,20 +148,18 @@ export class TransactionService {
           options
         )
         .then((response) => {
-          const RESULT = response.data;
+          // if (!RESULT.includes('Deine Überweisung wurde aufgegeben und durchgeführt!')) {
+          //   if (RESULT.includes('Falsches IBAN-Format!')) throw new Error('Falsches IBAN-Format!');
 
-          if (!RESULT.includes('Deine Überweisung wurde aufgegeben und durchgeführt!')) {
-            if (RESULT.includes('Falsches IBAN-Format!')) throw new Error('Falsches IBAN-Format!');
+          //   if (RESULT.includes('Zu wenig Geld auf dem Konto!'))
+          //     throw new Error('Zu wenig Geld auf dem Konto!');
 
-            if (RESULT.includes('Zu wenig Geld auf dem Konto!'))
-              throw new Error('Zu wenig Geld auf dem Konto!');
+          //   if (RESULT.includes('Zielkonto existiert nicht'))
+          //     throw new Error('Zielkonto existiert nicht!');
 
-            if (RESULT.includes('Zielkonto existiert nicht'))
-              throw new Error('Zielkonto existiert nicht!');
-
-            console.log(RESULT);
-            throw new Error('Ein unbekannter Fehler ist aufgetreten!');
-          }
+          //   // console.log(RESULT);
+          //   throw new Error('Ein unbekannter Fehler ist aufgetreten!');
+          // }
 
           res('Das Geld wurde überwiesen');
         })

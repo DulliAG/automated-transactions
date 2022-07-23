@@ -1,4 +1,4 @@
-export interface ITransaction {
+export interface Transaction {
   id: number;
   bkr_execution: TransactionExecution;
   sender: string;
@@ -13,4 +13,10 @@ export interface TransactionExecution {
   type: TransactionExecutionType;
   start_date: string;
   end_date: string;
+}
+
+export interface TransactionDetails {
+  target: string;
+  amount: number;
+  info: string;
 }

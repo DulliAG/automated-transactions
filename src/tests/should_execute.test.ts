@@ -3,7 +3,7 @@ import { TransactionService } from '../service/transaction.service';
 describe('Check if the transaction should execute', () => {
   test('Daily, but start-date is in the future', () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'DAILY',
@@ -17,7 +17,7 @@ describe('Check if the transaction should execute', () => {
 
   test('Daily, should execute during period', () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'DAILY',
@@ -31,7 +31,7 @@ describe('Check if the transaction should execute', () => {
 
   test("Daily, should'nt execute after period", () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'DAILY',
@@ -45,7 +45,7 @@ describe('Check if the transaction should execute', () => {
 
   test('Weekly, should execute on start-date', () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'WEEKLY',
@@ -59,7 +59,7 @@ describe('Check if the transaction should execute', () => {
 
   test('Weekly, should execute one week after start', () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'WEEKLY',
@@ -73,7 +73,7 @@ describe('Check if the transaction should execute', () => {
 
   test("Weekly, should'nt execute", () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'WEEKLY',
@@ -87,7 +87,7 @@ describe('Check if the transaction should execute', () => {
 
   test('Month, run on start-date', () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'MONTHLY',
@@ -101,7 +101,7 @@ describe('Check if the transaction should execute', () => {
 
   test("Month, doesn't contains date", () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'MONTHLY',
@@ -115,7 +115,7 @@ describe('Check if the transaction should execute', () => {
 
   test('Month, run 2 months after start', () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'MONTHLY',
@@ -129,7 +129,7 @@ describe('Check if the transaction should execute', () => {
 
   test('Month, run 3 months after start on last day', () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'MONTHLY',
@@ -143,7 +143,7 @@ describe('Check if the transaction should execute', () => {
 
   test('Planned, should execute on start and end-date', () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'PLANNED',
@@ -157,7 +157,7 @@ describe('Check if the transaction should execute', () => {
 
   test("Planned, should'nt execute after start and end-date", () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'PLANNED',
@@ -171,7 +171,7 @@ describe('Check if the transaction should execute', () => {
 
   test("Planned, should'nt execute on different start and end-date", () => {
     expect(
-      TransactionService.shouldExecuteTransaction(
+      TransactionService.validateExecutionDate(
         {
           id: 1,
           type: 'PLANNED',
